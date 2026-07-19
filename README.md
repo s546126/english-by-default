@@ -6,12 +6,23 @@ This plugin stops you from typing prompts to your AI CLI in any language but Eng
 
 ## Quick start
 
+**Claude Code:**
+
 ```
 /plugin marketplace add s546126/english-by-default
 /plugin install english-by-default@english-by-default
 ```
 
-## Read this in your language
+**Codex, Grok, oh-my-pi, or any other AI CLI:** install the `ebd` command, then put it in front of your tool.
+
+```bash
+git clone https://github.com/s546126/english-by-default.git && cd english-by-default && npm link
+ebd x codex exec "your prompt"   # or: ebd x grok "...", ebd x omp "...", etc.
+```
+
+Exact steps per tool (including which ones have a native hook instead of the wrapper) are in [docs/ADAPTERS.md](docs/ADAPTERS.md).
+
+## Pick your language — this page won't block you
 
 - [en](docs/readme/en.md) — English
 - [zh](docs/readme/zh.md) — 中文
