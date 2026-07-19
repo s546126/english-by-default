@@ -1,0 +1,6 @@
+{
+  "name": "english-by-default",
+  "version": "0.1.0",
+  "description": "Force yourself to prompt AI tools in English: block/warn/log non-English input, verify rewrites with an LLM, and review the pairs with spaced repetition and the Feynman technique.",
+  "author": { "name": "s546126" }
+}
