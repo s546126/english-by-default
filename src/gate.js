@@ -1,40 +1,48 @@
 // 核心闸门:hook 和 CLI 包装器共用的决策逻辑
-const { isNonEnglish, hasStopword, isGiveup } = require("./detect");
-const { translate, judgeEquivalence } = require("./llm");
+const { isNonEnglish, hasStopword, isGiveup, detectLanguage } = require("./detect");
+const { translate, judgeEquivalence, assessNaturalnessSafe } = require("./llm");
 const { enqueue } = require("./queue");
 const { getPending, setPending, clearPending } = require("./state");
+const { t } = require("./i18n");
 
 // 返回 { action: "allow"|"block", reason?, additionalContext?, systemMessage? }
 function decide(cfg, sessionId, prompt, source) {
   if (process.env.EBD_INTERNAL) return { action: "allow" };
   const text = (prompt || "").trim();
-  if (!text || text.startsWith("/") || text.startsWith("!")) return { action: "allow" };
+  if (!text) return { action: "allow" };
 
+  // 先查 pending 再判断 '/'/'!' 快速放行:否则一句正在回复阻断的英文重写
+  // 只要碰巧以 '/' 或 '!' 开头(比如提到路径 "/usr/local ..."),就会绕过
+  // isGiveup/isNonEnglish/judgeEquivalence,而且这个会话的 pending 记录
+  // 还留在磁盘上没清掉,会在下一条无关的新 prompt 上诡异地重新拦截。
   const pending = getPending(sessionId);
 
   if (pending) {
     return handlePending(cfg, sessionId, text, pending, source);
   }
 
+  if (text.startsWith("/") || text.startsWith("!")) return { action: "allow" };
+
   if (!isNonEnglish(text)) return { action: "allow" };
+
+  // 只对原始非英文文本判定一次语言,后续 pending 相关分支复用缓存的结果,
+  // 不用每个 hook 进程(新 session 重入)都重新跑一遍脚本区间扫描。
+  const lang = detectLanguage(text);
 
   // 紧急词:跳过阻断,直接放行并记录
   if (hasStopword(text, cfg.stopwords)) {
     enqueue(cfg, { original: text, english: null, mode: "stopword", skipped: true, source });
     return {
       action: "allow",
-      systemMessage: "⚡ english-by-default: 命中紧急词,跳过阻断(已记录,可稍后补翻译)。"
+      systemMessage: t(lang, "stopwordBypass")
     };
   }
 
   if (cfg.mode === "block") {
-    setPending(sessionId, text);
+    setPending(sessionId, text, lang);
     return {
       action: "block",
-      reason:
-        "🛡 English by Default — 检测到非英文输入,已拦截。\n" +
-        "请用英文重新表达同样的意思(LLM 会判断语义是否一致,一致才放行)。\n" +
-        "想放弃就输入 giveup,会给出英文表达并自动继续。"
+      reason: t(lang, "blockHeader") + "\n" + t(lang, "rewritePrompt") + "\n" + t(lang, "giveupHint")
     };
   }
 
@@ -43,7 +51,7 @@ function decide(cfg, sessionId, prompt, source) {
   try {
     english = translate(cfg, text);
   } catch (_) { /* 翻译失败不挡路 */ }
-  enqueue(cfg, { original: text, english, mode: cfg.mode, source });
+  enqueue(cfg, { original: text, english, mode: cfg.mode, source, ...assessNaturalnessSafe(cfg, english) });
 
   const ctx = english
     ? "english-by-default: The user's message translated to English:\n" + english +
@@ -54,13 +62,17 @@ function decide(cfg, sessionId, prompt, source) {
     return {
       action: "allow",
       additionalContext: ctx,
-      systemMessage: "⚠️ english-by-default: 非英文输入(warn 模式,已记录)。英文版: " + (english || "翻译失败")
+      systemMessage: t(lang, "warnPrefix", { english: english || t(lang, "translationFailedShort") })
     };
   }
   return { action: "allow", additionalContext: ctx }; // log 模式静默
 }
 
 function handlePending(cfg, sessionId, text, pending, source) {
+  // pending.lang 是原文第一次被拦截时缓存的语言判定结果(见 decide()),
+  // 这里各分支都复用它,不重新跑 detectLanguage。
+  const lang = pending.lang || null;
+
   // 放弃:给出英文表达并继续
   if (isGiveup(text, cfg.giveupWords)) {
     let english = null;
@@ -68,9 +80,9 @@ function handlePending(cfg, sessionId, text, pending, source) {
       english = translate(cfg, pending.original);
     } catch (_) { /* fail-open */ }
     clearPending(sessionId);
-    enqueue(cfg, { original: pending.original, english, mode: "giveup", source });
+    enqueue(cfg, { original: pending.original, english, mode: "giveup", source, ...assessNaturalnessSafe(cfg, english) });
     if (!english) {
-      return { action: "allow", systemMessage: "english-by-default: 翻译失败,已放行原文。" };
+      return { action: "allow", systemMessage: t(lang, "giveupTranslateFailed") };
     }
     return {
       action: "allow",
@@ -78,17 +90,16 @@ function handlePending(cfg, sessionId, text, pending, source) {
         "english-by-default: The user originally wrote (in another language):\n" + pending.original +
         "\nEnglish translation:\n" + english +
         "\nFirst show the user this English translation so they can learn it, then respond to the translated request.",
-      systemMessage: "🏳 giveup — 英文表达: " + english
+      systemMessage: t(lang, "giveupResult", { english })
     };
   }
 
   // 重写仍是非英文:继续拦
   if (isNonEnglish(text)) {
-    setPending(sessionId, pending.original);
+    setPending(sessionId, pending.original, lang);
     return {
       action: "block",
-      reason:
-        "🛡 还是非英文。请用英文重写这句话:\n「" + pending.original + "」\n输入 giveup 可放弃并获得英文表达。"
+      reason: t(lang, "stillNonEnglish", { original: pending.original }) + "\n" + t(lang, "giveupHint")
     };
   }
 
@@ -99,26 +110,27 @@ function handlePending(cfg, sessionId, text, pending, source) {
   } catch (_) {
     // LLM 挂了不挡路
     clearPending(sessionId);
-    enqueue(cfg, { original: pending.original, english: text, mode: "unverified", source });
-    return { action: "allow", systemMessage: "english-by-default: 判定服务异常,fail-open 放行。" };
+    enqueue(cfg, { original: pending.original, english: text, mode: "unverified", source, ...assessNaturalnessSafe(cfg, text) });
+    return { action: "allow", systemMessage: t(lang, "judgeServiceDown") };
   }
 
-  const passed = verdict.equivalent || (verdict.score || 0) >= cfg.judgeThreshold;
+  // verdict 来自 LLM 输出的裸 JSON.parse,没有 schema 校验:如果 equivalent
+  // 被判定模型序列化成字符串 "false" 而不是布尔值 false,JS 里非空字符串是
+  // truthy,用 || 直接短路会把 passed 误判成通过。这里严格要求 === true。
+  const passed = verdict.equivalent === true || (Number(verdict.score) || 0) >= cfg.judgeThreshold;
   if (passed) {
     clearPending(sessionId);
-    enqueue(cfg, { original: pending.original, english: text, mode: "rewrite", source });
+    enqueue(cfg, { original: pending.original, english: text, mode: "rewrite", source, ...assessNaturalnessSafe(cfg, text) });
     return {
       action: "allow",
-      systemMessage: `✅ english-by-default: 语义一致 (score ${verdict.score})。对照已入队。`
+      systemMessage: t(lang, "matchOk", { score: verdict.score })
     };
   }
 
-  setPending(sessionId, pending.original);
+  setPending(sessionId, pending.original, lang);
   return {
     action: "block",
-    reason:
-      `🛡 语义还不一致 (score ${verdict.score})。\n提示: ${verdict.hint || "再想想缺了什么"}\n` +
-      "继续用英文重写,或输入 giveup 放弃。"
+    reason: t(lang, "mismatchPrefix", { score: verdict.score, hint: verdict.hint || t(lang, "hintFallback") })
   };
 }
 

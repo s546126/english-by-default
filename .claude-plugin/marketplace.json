@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "english-by-default",
+  "description": "Force yourself to prompt AI tools in English: block/warn/log non-English input, verify rewrites with an LLM, and review the pairs with spaced repetition and the Feynman technique.",
+  "owner": { "name": "s546126", "url": "https://github.com/s546126" },
+  "plugins": [
+    {
+      "name": "english-by-default",
+      "description": "Force yourself to prompt AI tools in English: block/warn/log non-English input, verify rewrites with an LLM, and review the pairs with spaced repetition and the Feynman technique.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
