@@ -24,21 +24,21 @@ Exact steps per tool (including which ones have a native hook instead of the wra
 
 ## Pick your language — this page won't block you
 
-- [en](docs/readme/en.md) — English, the language this whole tool is obsessed with
-- [zh](docs/readme/zh.md) — 英语，笔下生花，张口结舌
-- [ja](docs/readme/ja.md) — 中高6年も英語を習ったのに、本番になると「あの…」しか出てこない。
-- [ko](docs/readme/ko.md) — 영어 공부는 오늘도 작심삼일
-- [ru](docs/readme/ru.md) — Английский — со словарём. Тут можно без.
-- [ar](docs/readme/ar.md) — احكي عربي... مش فرانكو
-- [es](docs/readme/es.md) — Aquí nadie te obliga a nada — bastante tenemos ya con el subjuntivo.
-- [pt](docs/readme/pt.md) — Aqui seu inglês pode parar no "the book is on the table" mesmo.
-- [fr](docs/readme/fr.md) — Un village peuplé d'irréductibles Gaulois résiste encore à l'anglais.
-- [de](docs/readme/de.md) — Hier bitte auf Deutsch bleiben – bevor wir wie immer ins Englische abdriften.
-- [it](docs/readme/it.md) — Qui doppiamo tutto in italiano, pure l'inglese di questo plugin.
-- [nl](docs/readme/nl.md) — Doe maar Nederlands, dan doe je al gek genoeg
-- [he](docs/readme/he.md) — הדף היחיד שלא מכריח אתכם לכתוב משמאל לימין
-- [hi](docs/readme/hi.md) — यहाँ अंग्रेज़ी झाड़ने की ज़बरदस्ती नहीं — हिंदी में भी झाड़ सकते हैं!
-- [th](docs/readme/th.md) — พูดไทยคำ อังกฤษคำ มาตั้งแต่เกิด จะมาบล็อกตอนนี้ทำไม
+- [English, the language this whole tool is obsessed with](docs/readme/en.md)
+- [四六级过了，开口卡了。](docs/readme/zh.md)
+- [中高6年も英語を習ったのに、本番になると「あの…」しか出てこない。](docs/readme/ja.md)
+- [영어 공부는 오늘도 작심삼일](docs/readme/ko.md)
+- [Английский — со словарём. Тут можно без.](docs/readme/ru.md)
+- [احكي عربي... مش فرانكو](docs/readme/ar.md)
+- [Aquí nadie te obliga a nada — bastante tenemos ya con el subjuntivo.](docs/readme/es.md)
+- [Aqui seu inglês pode parar no "the book is on the table" mesmo.](docs/readme/pt.md)
+- [Un village peuplé d'irréductibles Gaulois résiste encore à l'anglais.](docs/readme/fr.md)
+- [Hier bitte auf Deutsch bleiben – bevor wir wie immer ins Englische abdriften.](docs/readme/de.md)
+- [Qui doppiamo tutto in italiano, pure l'inglese di questo plugin.](docs/readme/it.md)
+- [Doe maar Nederlands, dan doe je al gek genoeg](docs/readme/nl.md)
+- [הדף היחיד שלא מכריח אתכם לכתוב משמאל לימין](docs/readme/he.md)
+- [यहाँ अंग्रेज़ी झाड़ने की ज़बरदस्ती नहीं — हिंदी में भी झाड़ सकते हैं!](docs/readme/hi.md)
+- [พูดไทยคำ อังกฤษคำ มาตั้งแต่เกิด จะมาบล็อกตอนนี้ทำไม](docs/readme/th.md)
 
 The English page is the full manual. It covers install (including the manual/standalone CLI path), every command, exactly which languages get detected, the web dashboard, and more.
 
