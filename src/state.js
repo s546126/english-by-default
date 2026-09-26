@@ -34,6 +34,11 @@ function saveAll(all) {
 // 不同 Claude Code 会话是各自独立的 OS 进程,共享同一个 pending.json,
 // 必须加锁让 读-改-写 整体串行,否则后写的会把别的会话刚写入的键覆盖掉。
 function getPending(sessionId) {
+  // 快速路径:绝大多数 prompt 所在会话根本没有 pending 记录。saveAll 是
+  // 临时文件 + rename 原子替换,无锁读到的一定是某个完整快照,
+  // 所以"没有这条记录"可以直接返回,不用每条 prompt 都去抢锁。
+  // 有记录时才进锁里重新读一遍,再做 TTL 过期清理这种写操作。
+  if (!loadAll()[sessionId]) return null;
   return withLock(lockPath(), () => {
     const all = loadAll();
     const p = all[sessionId];

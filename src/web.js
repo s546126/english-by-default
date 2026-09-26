@@ -6,7 +6,7 @@ const { countNonLatin, countLatinLetters } = require("./detect");
 
 function computeStats() {
   const entries = loadQueue();
-  const due = dueEntries();
+  const due = dueEntries(entries);
   const scored = entries.filter((e) => e.lastScore !== null && e.lastScore !== undefined);
   const avgLastScore = scored.length
     ? Math.round(scored.reduce((s, e) => s + e.lastScore, 0) / scored.length)

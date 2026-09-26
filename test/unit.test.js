@@ -320,3 +320,30 @@ test("i18n.t: 所有文档化语言(detectLanguage 可能返回的 8 种 + en �
     }
   }
 });
+
+// ---------------------------------------------------------------------------
+// src/llm.js — naturalnessOf / src/gate.js — judgePassed
+// ---------------------------------------------------------------------------
+
+test("llm.naturalnessOf: 只认布尔 natural,缺失/类型不对都是 null(未判),空 hint 也是 null", () => {
+  assert.deepEqual(llm.naturalnessOf({ natural: true, naturalHint: "" }), { natural: true, naturalHint: null });
+  assert.deepEqual(llm.naturalnessOf({ natural: false, naturalHint: "say X" }), { natural: false, naturalHint: "say X" });
+  assert.deepEqual(llm.naturalnessOf({ natural: "false" }), { natural: null, naturalHint: null });
+  assert.deepEqual(llm.naturalnessOf(null), { natural: null, naturalHint: null });
+});
+
+test("gate.judgePassed: equivalent 必须是布尔 true,字符串 \"false\" 不能当成通过", () => {
+  const { judgePassed } = require("../src/gate");
+  const cfg = { judgeThreshold: 70 };
+  assert.equal(judgePassed(cfg, { equivalent: true, score: 10 }), true);
+  assert.equal(judgePassed(cfg, { equivalent: "false", score: 10 }), false);
+  assert.equal(judgePassed(cfg, { equivalent: false, score: 70 }), true);
+  assert.equal(judgePassed(cfg, { equivalent: false, score: "abc" }), false);
+});
+
+test("state.getPending: pending.json 不存在时直接返回 null,不创建锁文件", () => {
+  const statePath = path.join(HOME, "pending.json");
+  fs.rmSync(statePath, { force: true });
+  assert.equal(state.getPending("nobody"), null);
+  assert.equal(fs.existsSync(statePath + ".lock"), false);
+});

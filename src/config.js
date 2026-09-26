@@ -22,8 +22,13 @@ const DEFAULTS = {
   }
 };
 
+// 每个进程只 mkdir 一次:hook 每条 prompt 都会走 loadConfig/getPending,
+// 没必要每次读写都重复一次系统调用。
+let homeReady = false;
 function ensureHome() {
+  if (homeReady) return;
   fs.mkdirSync(HOME, { recursive: true });
+  homeReady = true;
 }
 
 // 跨进程文件锁:用独占创建(wx)的锁文件当互斥量,避免多个 ebd/hook 进程
