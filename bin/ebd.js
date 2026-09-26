@@ -6,37 +6,14 @@ const os = require("os");
 const { spawnSync } = require("child_process");
 const { HOME, loadConfig, saveConfig } = require("../src/config");
 const { isNonEnglish, hasStopword, isGiveup } = require("../src/detect");
-const { translate, judgeEquivalence, assessNaturalnessSafe } = require("../src/llm");
+const { translate, judgeEquivalence, naturalnessOf } = require("../src/llm");
+const { judgePassed } = require("../src/gate");
+const { createRl, StdinClosed, askQuestion } = require("../src/tty");
 const { loadQueue, enqueue, dueEntries } = require("../src/queue");
 const reviewMod = require("../src/review");
 const webMod = require("../src/web");
 
 const HOOK_PATH = path.join(__dirname, "..", "hooks", "claude-code-hook.js");
-
-// stdin 提前关闭(非 TTY/管道/CI,或用户按 Ctrl-D)时抛出这个,
-// 而不是让 rl.question() 的 promise 永远悬空、静默 exit 0。
-class StdinClosed extends Error {}
-
-// readline/promises 的 question() 在 stdin 到达 EOF 时既不 resolve 也不 reject——
-// 只有 interface 自己的 'close' 事件会触发。这里跟 'close' 赛跑,EOF 就转成显式异常。
-function askQuestion(rl, prompt) {
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const onClose = () => {
-      if (!settled) { settled = true; reject(new StdinClosed("stdin closed before answering")); }
-    };
-    rl.once("close", onClose);
-    rl.question(prompt).then((answer) => {
-      if (!settled) {
-        settled = true;
-        rl.removeListener("close", onClose);
-        resolve(answer);
-      }
-    }).catch((e) => {
-      if (!settled) { settled = true; reject(e); }
-    });
-  });
-}
 
 const HELP = `ebd — English by Default
 
@@ -130,14 +107,13 @@ async function gateInteractive(cfg, original) {
     try {
       english = translate(cfg, original);
     } catch (_) { /* 翻译失败不挡路,原样放行 */ }
-    enqueue(cfg, { original, english, mode: cfg.mode, source: "wrapper", ...assessNaturalnessSafe(cfg, english) });
+    enqueue(cfg, { original, english, mode: cfg.mode, source: "wrapper" });
     if (cfg.mode === "warn") {
       console.log(english ? `⚠️ 非英文输入,已自动转英文: ${english}` : "⚠️ 非英文输入,翻译失败,已原样放行。");
     }
     return english || original;
   }
-  const readline = require("readline/promises");
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const rl = createRl();
   try {
     console.log(`🛡 非英文输入被拦截:「${original}」`);
     console.log("请用英文重写 (输入 giveup 放弃并获得英文表达):");
@@ -149,7 +125,7 @@ async function gateInteractive(cfg, original) {
         try {
           english = translate(cfg, original);
         } catch (_) { /* fail-open */ }
-        enqueue(cfg, { original, english, mode: "giveup", source: "wrapper", ...assessNaturalnessSafe(cfg, english) });
+        enqueue(cfg, { original, english, mode: "giveup", source: "wrapper" });
         console.log(english ? `🏳 英文表达: ${english}` : "🏳 翻译失败,已放行原文。");
         return english || original;
       }
@@ -159,12 +135,12 @@ async function gateInteractive(cfg, original) {
         v = judgeEquivalence(cfg, original, attempt);
       } catch (_) {
         // LLM 挂了不挡路
-        enqueue(cfg, { original, english: attempt, mode: "unverified", source: "wrapper", ...assessNaturalnessSafe(cfg, attempt) });
+        enqueue(cfg, { original, english: attempt, mode: "unverified", source: "wrapper" });
         console.log("判定服务异常,fail-open 放行。");
         return attempt;
       }
-      if (v.equivalent === true || (Number(v.score) || 0) >= cfg.judgeThreshold) {
-        enqueue(cfg, { original, english: attempt, mode: "rewrite", source: "wrapper", ...assessNaturalnessSafe(cfg, attempt) });
+      if (judgePassed(cfg, v)) {
+        enqueue(cfg, { original, english: attempt, mode: "rewrite", source: "wrapper", ...naturalnessOf(v) });
         console.log(`✅ 语义一致 (score ${v.score})。`);
         return attempt;
       }
@@ -218,7 +194,7 @@ function cmdList(n) {
 function cmdStats() {
   const cfg = loadConfig();
   const entries = loadQueue();
-  const due = dueEntries();
+  const due = dueEntries(entries);
   const scored = entries.filter((e) => e.lastScore !== null);
   const avg = scored.length ? Math.round(scored.reduce((s, e) => s + e.lastScore, 0) / scored.length) : "-";
   const nextTs = entries.length ? Math.min(...entries.map((e) => e.nextReview)) : null;
@@ -259,7 +235,7 @@ function cmdStats() {
       try {
         english = translate(cfg, text);
       } catch (_) { /* 翻译失败,原样输出 */ }
-      enqueue(cfg, { original: text, english, mode: "gate", source: "gate", ...assessNaturalnessSafe(cfg, english) });
+      enqueue(cfg, { original: text, english, mode: "gate", source: "gate" });
       console.log(english || text);
       break;
     }

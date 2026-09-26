@@ -63,7 +63,7 @@ function enqueue(cfg, entry) {
       reviews: 0,
       nextReview: now + DAY,
       lastScore: null,
-      // 地道度判定(assessNaturalness):没有英文可判(如 stopword 跳过)或 LLM
+      // 地道度判定(随 judgeEquivalence 一起返回):没有英文可判(如 stopword 跳过)或 LLM
       // 判定失败时都是 null,不是 false —— null 表示"未知/未判",false 才表示
       // "判过了、不地道"。用 !== undefined 而非 || 是因为 natural 合法取值包含 false。
       natural: entry.natural !== undefined ? entry.natural : null,
@@ -93,9 +93,10 @@ function scheduleAfterReview(entry, passed) {
   return { reviews, nextReview: Date.now() + (passed ? interval : 1) * DAY };
 }
 
-function dueEntries() {
+// entries 可选:调用方手里已经有整条队列时传进来,省一次读盘 + 全量 parse
+function dueEntries(entries) {
   const now = Date.now();
-  return loadQueue().filter((e) => e.nextReview <= now);
+  return (entries || loadQueue()).filter((e) => e.nextReview <= now);
 }
 
 module.exports = { loadQueue, saveQueue, enqueue, updateEntry, scheduleAfterReview, dueEntries, INTERVALS };

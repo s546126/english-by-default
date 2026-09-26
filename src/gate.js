@@ -1,9 +1,16 @@
 // 核心闸门:hook 和 CLI 包装器共用的决策逻辑
 const { isNonEnglish, hasStopword, isGiveup, detectLanguage } = require("./detect");
-const { translate, judgeEquivalence, assessNaturalnessSafe } = require("./llm");
+const { translate, judgeEquivalence, naturalnessOf } = require("./llm");
 const { enqueue } = require("./queue");
 const { getPending, setPending, clearPending } = require("./state");
 const { t } = require("./i18n");
+
+// verdict 来自 LLM 输出的裸 JSON.parse,没有 schema 校验:如果 equivalent
+// 被判定模型序列化成字符串 "false" 而不是布尔值 false,JS 里非空字符串是
+// truthy,用 || 直接短路会把 passed 误判成通过。这里严格要求 === true。
+function judgePassed(cfg, verdict) {
+  return verdict.equivalent === true || (Number(verdict.score) || 0) >= cfg.judgeThreshold;
+}
 
 // 返回 { action: "allow"|"block", reason?, additionalContext?, systemMessage? }
 function decide(cfg, sessionId, prompt, source) {
@@ -46,12 +53,14 @@ function decide(cfg, sessionId, prompt, source) {
     };
   }
 
-  // warn / log:翻译后放行,英文版作为上下文喂给 LLM
+  // warn / log:翻译后放行,英文版作为上下文喂给 LLM。
+  // 这里的英文是机器翻译,不是用户自己写的,不做地道度判定(给模型自己的
+  // 译文打"地道分"没有学习价值,还白白多一次阻塞用户输入的 LLM 调用)。
   let english = null;
   try {
     english = translate(cfg, text);
   } catch (_) { /* 翻译失败不挡路 */ }
-  enqueue(cfg, { original: text, english, mode: cfg.mode, source, ...assessNaturalnessSafe(cfg, english) });
+  enqueue(cfg, { original: text, english, mode: cfg.mode, source });
 
   const ctx = english
     ? "english-by-default: The user's message translated to English:\n" + english +
@@ -80,7 +89,7 @@ function handlePending(cfg, sessionId, text, pending, source) {
       english = translate(cfg, pending.original);
     } catch (_) { /* fail-open */ }
     clearPending(sessionId);
-    enqueue(cfg, { original: pending.original, english, mode: "giveup", source, ...assessNaturalnessSafe(cfg, english) });
+    enqueue(cfg, { original: pending.original, english, mode: "giveup", source });
     if (!english) {
       return { action: "allow", systemMessage: t(lang, "giveupTranslateFailed") };
     }
@@ -108,19 +117,16 @@ function handlePending(cfg, sessionId, text, pending, source) {
   try {
     verdict = judgeEquivalence(cfg, pending.original, text);
   } catch (_) {
-    // LLM 挂了不挡路
+    // LLM 挂了不挡路;也不再追加地道度判定 —— 服务刚挂过,再调一次大概率
+    // 又要白等一个完整超时,才能放行用户。
     clearPending(sessionId);
-    enqueue(cfg, { original: pending.original, english: text, mode: "unverified", source, ...assessNaturalnessSafe(cfg, text) });
+    enqueue(cfg, { original: pending.original, english: text, mode: "unverified", source });
     return { action: "allow", systemMessage: t(lang, "judgeServiceDown") };
   }
 
-  // verdict 来自 LLM 输出的裸 JSON.parse,没有 schema 校验:如果 equivalent
-  // 被判定模型序列化成字符串 "false" 而不是布尔值 false,JS 里非空字符串是
-  // truthy,用 || 直接短路会把 passed 误判成通过。这里严格要求 === true。
-  const passed = verdict.equivalent === true || (Number(verdict.score) || 0) >= cfg.judgeThreshold;
-  if (passed) {
+  if (judgePassed(cfg, verdict)) {
     clearPending(sessionId);
-    enqueue(cfg, { original: pending.original, english: text, mode: "rewrite", source, ...assessNaturalnessSafe(cfg, text) });
+    enqueue(cfg, { original: pending.original, english: text, mode: "rewrite", source, ...naturalnessOf(verdict) });
     return {
       action: "allow",
       systemMessage: t(lang, "matchOk", { score: verdict.score })
@@ -134,4 +140,4 @@ function handlePending(cfg, sessionId, text, pending, source) {
   };
 }
 
-module.exports = { decide };
+module.exports = { decide, judgePassed };

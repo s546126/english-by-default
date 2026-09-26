@@ -121,7 +121,9 @@ function translate(cfg, text) {
   return callLLM(cfg, prompt);
 }
 
-// 判断用户的英文重写是否与原文语义一致
+// 判断用户的英文重写是否与原文语义一致,顺带判断这段英文是否地道。
+// 两件事合并成一次 LLM 调用:hook 是同步阻塞用户输入的,每省一次调用
+// 就少等一次 CLI 冷启动 + 模型往返。
 function judgeEquivalence(cfg, original, attempt) {
   const prompt =
     "You are a language coach. Compare the MEANING of two texts.\n" +
@@ -129,8 +131,11 @@ function judgeEquivalence(cfg, original, attempt) {
     "B (user's English rewrite):\n" + attempt + "\n\n" +
     "Judge whether B expresses the same intent and key details as A. Minor wording differences are fine; " +
     "missing key requirements, wrong scope, or changed intent are not.\n" +
+    "Also judge whether B reads as natural, idiomatic English a native speaker would actually write " +
+    "(as opposed to awkward, overly literal, or non-native-sounding phrasing).\n" +
     'Reply with ONLY a JSON object: {"equivalent": true|false, "score": 0-100, ' +
-    '"hint": "if not equivalent, a short hint (in the language of A) about what is missing or wrong — do NOT give the full translation"}';
+    '"hint": "if not equivalent, a short hint (in the language of A) about what is missing or wrong — do NOT give the full translation", ' +
+    '"natural": true|false, "naturalHint": "if natural=false, a more natural/idiomatic way to phrase B, else empty string"}';
   return extractJSON(callLLM(cfg, prompt));
 }
 
@@ -158,36 +163,18 @@ function feynmanFeedback(cfg, original, reference, explanation) {
   return extractJSON(callLLM(cfg, prompt));
 }
 
-// 判断一段英文是否地道/自然(母语者会不会真的这么说),给仪表盘的"最近不地道表达"用
-function assessNaturalness(cfg, englishText) {
-  const prompt =
-    "You are a native English speaker and writing coach reviewing prompts written to an AI coding assistant.\n" +
-    "Judge whether the following English text reads as natural, idiomatic phrasing a native speaker would " +
-    "actually use, as opposed to awkward, overly literal, or non-native-sounding phrasing.\n\n" +
-    "Text:\n" + englishText + "\n\n" +
-    'Reply with ONLY a JSON object: {"natural": true|false, "score": 0-100, ' +
-    '"hint": "if natural=false, a more natural/idiomatic way to phrase the same text, else empty string"}';
-  return extractJSON(callLLM(cfg, prompt));
-}
-
-// assessNaturalness 的 fail-open 包装:调用方(gate.js / bin/ebd.js)在若干个不同的
-// 入队点都要做"英文非空才判断、LLM 挂了就存 natural=null 别挡路"这套样板逻辑,
-// 抽到这里统一实现一次,避免每个调用点各自重复 try/catch。
-function assessNaturalnessSafe(cfg, englishText) {
-  if (!englishText) return { natural: null, naturalHint: null };
-  try {
-    const v = assessNaturalness(cfg, englishText);
-    return {
-      natural: v.natural === true ? true : (v.natural === false ? false : null),
-      naturalHint: typeof v.hint === "string" ? v.hint : null
-    };
-  } catch (_) {
-    return { natural: null, naturalHint: null };
-  }
+// 把判定结果里的地道度字段规整成入队用的 {natural, naturalHint}:
+// 字段缺失/类型不对时一律是 null("未判"),不是 false("判过了、不地道")。
+function naturalnessOf(verdict) {
+  const v = verdict || {};
+  return {
+    natural: v.natural === true ? true : (v.natural === false ? false : null),
+    naturalHint: typeof v.naturalHint === "string" && v.naturalHint ? v.naturalHint : null
+  };
 }
 
 module.exports = {
   callLLM, extractJSON, translate, judgeEquivalence, gradeRecall, feynmanFeedback,
-  assessNaturalness, assessNaturalnessSafe,
+  naturalnessOf,
   resolveApiKey, extractOpenAIContent, extractAnthropicContent
 };
