@@ -7,7 +7,7 @@ if (prompt.includes('"equivalent"')) {
   if (prompt.includes("FAILWORD")) {
     console.log(JSON.stringify({ equivalent: false, score: 40, hint: "缺了关键细节" }));
   } else {
-    console.log(JSON.stringify({ equivalent: true, score: 95, hint: "" }));
+    console.log(JSON.stringify({ equivalent: true, score: 95, hint: "", natural: false, naturalHint: "Please refactor this function." }));
   }
 } else if (prompt.includes("recall exercise")) {
   console.log(JSON.stringify({ score: 88, feedback: "good", better: "" }));

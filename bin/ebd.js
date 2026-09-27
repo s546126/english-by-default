@@ -32,6 +32,8 @@ const HELP = `ebd — English by Default
   ebd quiz [n]                  随机抽查 n 条 (默认 5)
   ebd review                    艾宾浩斯复习 (只复习到期条目)
   ebd feynman                   费曼学习法:用简单英语讲给初学者听
+  ebd eval [--judge llm] [--lang zh] [--limit n] [--cases file] [--json]
+                                 用标注用例评测语义判官: 准确率 / 误放行 / 误拦截 / 延迟
 
   ebd stopwords list|add <w>|rm <w>   紧急词管理 (命中即跳过阻断)
   ebd provider [cli|openai|anthropic] [--key K] [--key-env NAME] [--base-url URL] [--model M]
@@ -259,6 +261,9 @@ function cmdStats() {
       break;
     case "feynman":
       await reviewMod.feynman(cfg);
+      break;
+    case "eval":
+      require("../src/eval").run(cfg, rest);
       break;
     case "stopwords": {
       const [sub, ...words] = rest;

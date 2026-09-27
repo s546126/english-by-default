@@ -28,6 +28,7 @@ echo "$out" | grep -q '"decision":"block"' || fail "语义不一致应继续阻�
 out=$(hook '{"session_id":"s1","prompt":"please refactor this function"}')
 echo "$out" | grep -q '"decision":"block"' && fail "语义一致应放行: $out"
 grep -q '"mode":"rewrite"' "$EBD_HOME/queue.jsonl" || fail "重写成功应入队"
+grep '"mode":"rewrite"' "$EBD_HOME/queue.jsonl" | grep -q '"natural":false' || fail "重写入队应带上判定一并返回的地道度"
 
 # 4. giveup 流程:阻断后放弃 → 给英文并放行
 hook '{"session_id":"s2","prompt":"帮我写一个排序算法"}' > /dev/null
