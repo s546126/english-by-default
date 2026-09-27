@@ -4,14 +4,18 @@
 const fs = require("fs");
 const path = require("path");
 const { judgeEquivalence } = require("./llm");
+const { systemoneVerdict } = require("./judge");
 const { judgePassed } = require("./gate");
 
 const DEFAULT_CASES = path.join(__dirname, "..", "test", "eval", "cases.json");
 
 // 可插拔判官:每个都是 (cfg, original, attempt) => verdict({equivalent, score, ...})。
 // 以后接新的判定后端,在这里注册一个名字即可,评测流程不用动。
+// systemone 这里直接测决策模型本身:不回退 llm、不额外生成提示,
+// 出错就记为出错,否则回退会把决策模型的失败掩盖成 llm 的成绩。
 const JUDGES = {
-  llm: judgeEquivalence
+  llm: judgeEquivalence,
+  systemone: systemoneVerdict
 };
 
 function loadCases(file) {
@@ -86,10 +90,12 @@ function fmtMs(x) {
 }
 
 function parseArgs(argv) {
-  const opts = { cases: DEFAULT_CASES, judges: ["llm"], limit: 0, lang: null, json: false };
+  const opts = { cases: DEFAULT_CASES, judges: ["llm"], limit: 0, lang: null, json: false, model: null, baseUrl: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--cases") opts.cases = argv[++i];
+    else if (a === "--model") opts.model = argv[++i];       // 只对 systemone 判官生效,不写回配置
+    else if (a === "--base-url") opts.baseUrl = argv[++i];
     else if (a === "--judge") opts.judges = String(argv[++i] || "").split(",").filter(Boolean);
     else if (a === "--limit") opts.limit = parseInt(argv[++i], 10) || 0;
     else if (a === "--lang") opts.lang = argv[++i];
@@ -99,9 +105,12 @@ function parseArgs(argv) {
   return opts;
 }
 
-// ebd eval [--cases file] [--judge llm[,other]] [--lang zh] [--limit n] [--json]
+// ebd eval [--cases file] [--judge llm[,systemone]] [--model M] [--base-url URL] [--lang zh] [--limit n] [--json]
 function run(cfg, argv) {
   const opts = parseArgs(argv);
+  if (opts.model || opts.baseUrl) {
+    cfg = { ...cfg, judge: { ...cfg.judge, ...(opts.model && { model: opts.model }), ...(opts.baseUrl && { baseUrl: opts.baseUrl }) } };
+  }
   let cases = loadCases(opts.cases);
   if (opts.lang) cases = cases.filter((c) => c.lang === opts.lang);
   if (opts.limit > 0) cases = cases.slice(0, opts.limit);

@@ -9,6 +9,9 @@ if (prompt.includes('"equivalent"')) {
   } else {
     console.log(JSON.stringify({ equivalent: true, score: 95, hint: "", natural: false, naturalHint: "Please refactor this function." }));
   }
+} else if (prompt.includes("student tried to rewrite")) {
+  // judge.js hintOnly:决策模型判不一致后只要提示
+  console.log(JSON.stringify({ hint: "漏了测试的要求" }));
 } else if (prompt.includes("recall exercise")) {
   console.log(JSON.stringify({ score: 88, feedback: "good", better: "" }));
 } else if (prompt.includes("Feynman")) {

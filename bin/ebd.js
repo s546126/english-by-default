@@ -6,7 +6,8 @@ const os = require("os");
 const { spawnSync } = require("child_process");
 const { HOME, loadConfig, saveConfig } = require("../src/config");
 const { isNonEnglish, hasStopword, isGiveup } = require("../src/detect");
-const { translate, judgeEquivalence, naturalnessOf } = require("../src/llm");
+const { translate, naturalnessOf } = require("../src/llm");
+const { judgeRewrite, DEFAULT_BASE_URL, DEFAULT_MODEL } = require("../src/judge");
 const { judgePassed } = require("../src/gate");
 const { createRl, StdinClosed, askQuestion } = require("../src/tty");
 const { loadQueue, enqueue, dueEntries } = require("../src/queue");
@@ -32,12 +33,14 @@ const HELP = `ebd — English by Default
   ebd quiz [n]                  随机抽查 n 条 (默认 5)
   ebd review                    艾宾浩斯复习 (只复习到期条目)
   ebd feynman                   费曼学习法:用简单英语讲给初学者听
-  ebd eval [--judge llm] [--lang zh] [--limit n] [--cases file] [--json]
+  ebd eval [--judge llm,systemone] [--model M] [--lang zh] [--limit n] [--cases file] [--json]
                                  用标注用例评测语义判官: 准确率 / 误放行 / 误拦截 / 延迟
 
   ebd stopwords list|add <w>|rm <w>   紧急词管理 (命中即跳过阻断)
   ebd provider [cli|openai|anthropic] [--key K] [--key-env NAME] [--base-url URL] [--model M]
                                  查看/配置 LLM 后端 (默认 cli,走本机 claude 命令)
+  ebd judge [llm|systemone] [--base-url URL] [--model M] [--key K] [--key-env NAME] [--threshold P]
+                                 查看/配置语义判官 (默认 llm;systemone = Jev 云端或本机 Ollaya)
   ebd config                    打印配置路径与内容 (key 会打码)
 `;
 
@@ -51,6 +54,7 @@ function maskKey(k) {
 function redactConfig(cfg) {
   const copy = JSON.parse(JSON.stringify(cfg));
   if (copy.llm) copy.llm.apiKey = maskKey(copy.llm.apiKey);
+  if (copy.judge) copy.judge.apiKey = maskKey(copy.judge.apiKey);
   return copy;
 }
 
@@ -134,7 +138,7 @@ async function gateInteractive(cfg, original) {
       if (isNonEnglish(attempt)) { console.log("还是非英文,再来。"); continue; }
       let v;
       try {
-        v = judgeEquivalence(cfg, original, attempt);
+        v = judgeRewrite(cfg, original, attempt);
       } catch (_) {
         // LLM 挂了不挡路
         enqueue(cfg, { original, english: attempt, mode: "unverified", source: "wrapper" });
@@ -300,6 +304,38 @@ function cmdStats() {
         console.log(`  baseUrl: ${cfg.llm.baseUrl || "(provider 默认)"}`);
         console.log(`  model: ${cfg.llm.model || "(内置默认)"}`);
         console.log(`  apiKey: ${cfg.llm.apiKeyEnv ? "读环境变量 " + cfg.llm.apiKeyEnv : (maskKey(cfg.llm.apiKey) || "(未设置,回退到标准环境变量)")}`);
+      }
+      break;
+    }
+    case "judge": {
+      const [name, ...flags] = rest;
+      if (name && !["llm", "systemone"].includes(name)) {
+        console.log("judge 只能是 llm | systemone");
+        break;
+      }
+      const j = cfg.judge;
+      let changed = false;
+      if (name) { j.provider = name; changed = true; }
+      for (let i = 0; i < flags.length; i++) {
+        const val = flags[i + 1];
+        if (flags[i] === "--key") { j.apiKey = val; i++; changed = true; }
+        else if (flags[i] === "--key-env") { j.apiKeyEnv = val; i++; changed = true; }
+        else if (flags[i] === "--base-url") { j.baseUrl = val; i++; changed = true; }
+        else if (flags[i] === "--model") { j.model = val; i++; changed = true; }
+        else if (flags[i] === "--threshold") {
+          const p = parseFloat(val);
+          if (!(p > 0 && p < 1)) { console.log("--threshold 要在 0 到 1 之间"); return; }
+          j.threshold = p; i++; changed = true;
+        }
+      }
+      if (changed) saveConfig(cfg);
+      console.log(`judge: ${j.provider}`);
+      if (j.provider === "systemone") {
+        console.log(`  baseUrl: ${j.baseUrl || DEFAULT_BASE_URL + " (Jev 云端)"}`);
+        console.log(`  model: ${j.model || DEFAULT_MODEL}`);
+        console.log(`  threshold: ${j.threshold}  timeoutMs: ${j.timeoutMs}  hintFromLLM: ${j.hintFromLLM}`);
+        console.log(`  apiKey: ${j.apiKeyEnv ? "读环境变量 " + j.apiKeyEnv : (maskKey(j.apiKey) || "(未设置,回退到 TYPESAFE_API_KEY)")}`);
+        console.log("  出错/超时自动回退 llm 判定。先用 `ebd eval --judge llm,systemone` 对比再启用。");
       }
       break;
     }

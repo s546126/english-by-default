@@ -19,6 +19,19 @@ const DEFAULTS = {
     apiKey: null,      // provider=openai/anthropic 时的 key,明文存在 config.json 里
     apiKeyEnv: null,   // 优先级更高:从这个环境变量名读 key,不用把 key 写进配置文件
     timeoutMs: 90000
+  },
+  // 语义判定(英文重写 vs 原文)的后端。llm = 走上面的 llm 配置(默认);
+  // systemone = TypeSafe /v1/systemone 协议的决策模型:Jev 云端,或本机 Ollaya
+  // (baseUrl 改成 http://localhost:11435、model 改成 laya / kev / decider 等)。
+  judge: {
+    provider: "llm",
+    baseUrl: null,     // 留空 = https://api.typesafe.ai
+    model: null,       // 留空 = jev-latest
+    apiKey: null,
+    apiKeyEnv: null,   // 留空时回退读 TYPESAFE_API_KEY
+    threshold: 0.5,    // equivalent 概率 >= 这个值才算语义一致
+    hintFromLLM: true, // 判不一致时再调一次 llm 生成"缺了什么"的提示(决策模型不生成文字)
+    timeoutMs: 3000    // 超时/出错就回退到 llm 判定
   }
 };
 
@@ -71,6 +84,7 @@ function loadConfig() {
   } catch (_) { /* 首次运行,用默认值 */ }
   const merged = { ...DEFAULTS, ...cfg };
   merged.llm = { ...DEFAULTS.llm, ...(cfg.llm || {}) };
+  merged.judge = { ...DEFAULTS.judge, ...(cfg.judge || {}) };
   return merged;
 }
 

@@ -54,4 +54,23 @@ EOF
 out=$(hook '{"session_id":"s5","prompt":"帮我写个爬虫"}')
 echo "$out" | grep -q 'additionalContext' || fail "warn 模式应注入英文上下文: $out"
 
+# 8. systemone 判官(本地桩服务):阻断 → FAILWORD 继续拦且带 llm 提示 → 正常重写放行
+node "$ROOT/test/fake-systemone.js" > "$EBD_HOME/fake-systemone.out" &
+fake_pid=$!
+trap 'kill $fake_pid 2>/dev/null; rm -rf "$EBD_HOME"' EXIT
+for _ in $(seq 50); do grep -q READY "$EBD_HOME/fake-systemone.out" 2>/dev/null && break; sleep 0.1; done
+port=$(sed -n 's/READY //p' "$EBD_HOME/fake-systemone.out")
+[ -n "$port" ] || fail "fake-systemone 没有启动"
+cat > "$EBD_HOME/config.json" <<EOF
+{ "mode": "block", "llm": { "command": ["node", "$ROOT/test/fake-llm.js"] },
+  "judge": { "provider": "systemone", "baseUrl": "http://127.0.0.1:$port", "model": "laya", "apiKey": "local" } }
+EOF
+hook '{"session_id":"s6","prompt":"帮我重构这个函数并补上测试"}' > /dev/null
+out=$(hook '{"session_id":"s6","prompt":"FAILWORD refactor it"}')
+echo "$out" | grep -q '"decision":"block"' || fail "systemone 判不一致应继续阻断: $out"
+echo "$out" | grep -q '漏了测试的要求' || fail "systemone 判不一致应带 llm 生成的提示: $out"
+out=$(hook '{"session_id":"s6","prompt":"refactor this function and add tests"}')
+echo "$out" | grep -q '"decision":"block"' && fail "systemone 判一致应放行: $out"
+echo "$out" | grep -q 'score 93' || fail "放行消息应显示 systemone 的分数: $out"
+
 echo "ALL SMOKE TESTS PASSED"

@@ -77,6 +77,22 @@ ebd provider cli                                      # back to the local-CLI de
 
 API key resolution order: `llm.apiKeyEnv` (an env var name you point it at) → `llm.apiKey` (plaintext in `config.json`) → the provider's standard env var (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`), so if you've already exported the standard variable you don't need to configure anything. `ebd config` always masks `apiKey` when printing (`sk-t…1234`), it never dumps it in full.
 
+### Judge backend (optional: decision models)
+
+The "does your English rewrite mean the same thing?" check can run on a decision model instead of the LLM. Decision models return a probability in one forward pass instead of generating text, so they answer in milliseconds (local) to a few hundred milliseconds (hosted). Anything that speaks TypeSafe's `/v1/systemone` wire format works:
+
+```bash
+ebd judge                                                          # show current judge (default: llm)
+ebd judge systemone --base-url http://localhost:11435 --model laya # local Ollaya (data stays on your machine)
+ebd judge systemone --key-env TYPESAFE_API_KEY                     # hosted Jev (sends the original and your rewrite to TypeSafe)
+ebd judge llm                                                      # back to the default
+```
+
+- The rewrite passes when the model's probability is at least `judge.threshold` (default `0.5`, `--threshold`).
+- Decision models don't write text, so when a rewrite fails, one LLM call writes the "what's missing" hint (`judge.hintFromLLM`, default on).
+- On any error, a missing key, or a timeout (`judge.timeoutMs`, default 3000), the judge falls back to the LLM, so enabling it never blocks you harder than before.
+- Accuracy varies a lot by model and language. Measure before switching: `ebd eval --judge llm,systemone` runs the 60 labeled multilingual cases in `test/eval/cases.json` and reports accuracy, false passes, false blocks and P50/P95 latency. Use `--model kev` (etc.) to compare local models without changing your config, and `--lang zh` to focus on one language.
+
 ## Usage
 
 ```bash

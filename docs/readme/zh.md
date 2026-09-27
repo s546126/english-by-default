@@ -80,6 +80,22 @@ ebd install claude-code    # writes a UserPromptSubmit hook into ~/.claude/setti
 
 翻译和评判默认使用本地的 `claude -p --model haiku` CLI。你可以把 `~/.english-by-default/config.json` 里的 `llm.command` 指向任何 CLI,只要它的最后一个参数是提示词、标准输出是回答即可(比如 `codex exec`)。
 
+### 判官后端(可选:决策模型)
+
+"英文重写和原文意思是否一致"这一步,可以换成决策模型来判。决策模型一次前向计算直接给出概率,不生成文字,所以本机几毫秒、云端几百毫秒就能出结果。任何兼容 TypeSafe `/v1/systemone` 协议的服务都能用:
+
+```bash
+ebd judge                                                          # 查看当前判官(默认 llm)
+ebd judge systemone --base-url http://localhost:11435 --model laya # 本机 Ollaya(数据不出本机)
+ebd judge systemone --key-env TYPESAFE_API_KEY                     # Jev 云端(原文和你的重写会发给 TypeSafe)
+ebd judge llm                                                      # 改回默认
+```
+
+- 概率不低于 `judge.threshold`(默认 `0.5`,用 `--threshold` 改)才算一致。
+- 决策模型不写文字,所以判不一致时会再调一次 LLM 生成"缺了什么"的提示(`judge.hintFromLLM`,默认开)。
+- 出错、没配 key 或超时(`judge.timeoutMs`,默认 3000)都会自动退回 LLM 判定,开了也不会比原来更容易卡住。
+- 不同模型、不同语言的准确率差别很大,换之前先测:`ebd eval --judge llm,systemone` 会跑 `test/eval/cases.json` 里 60 条多语言标注用例,报告准确率、误放行、误拦截和 P50/P95 延迟。加 `--model kev` 等可以不改配置直接对比本机其他模型,`--lang zh` 只测一种语言。
+
 ## 使用方法
 
 ```bash

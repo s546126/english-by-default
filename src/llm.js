@@ -22,7 +22,8 @@ function resolveApiKey(cfg) {
 // 走 argv 是接受的风险 —— 跟 command 模式下 prompt 本身出现在 argv 里是同一
 // 威胁模型,这是个本地个人工具,不是要扛企业级密钥托管。
 function curlPostJSON(url, headers, bodyObj, timeoutMs) {
-  const args = ["-sS", "--max-time", String(Math.ceil(timeoutMs / 1000)), "-X", "POST", url];
+  // --max-time 接受小数秒:判官的超时预算是毫秒级,不能向上取整成整秒
+  const args = ["-sS", "--max-time", String(timeoutMs / 1000), "-X", "POST", url];
   for (const [k, v] of Object.entries(headers)) args.push("-H", `${k}: ${v}`);
   args.push("-H", "Content-Type: application/json", "--data-binary", "@-");
   const res = spawnSync("curl", args, { input: JSON.stringify(bodyObj), encoding: "utf8", maxBuffer: 10 * 1024 * 1024 });
@@ -174,7 +175,7 @@ function naturalnessOf(verdict) {
 }
 
 module.exports = {
-  callLLM, extractJSON, translate, judgeEquivalence, gradeRecall, feynmanFeedback,
+  callLLM, curlPostJSON, extractJSON, translate, judgeEquivalence, gradeRecall, feynmanFeedback,
   naturalnessOf,
   resolveApiKey, extractOpenAIContent, extractAnthropicContent
 };

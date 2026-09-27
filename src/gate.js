@@ -1,6 +1,7 @@
 // 核心闸门:hook 和 CLI 包装器共用的决策逻辑
 const { isNonEnglish, hasStopword, isGiveup, detectLanguage } = require("./detect");
-const { translate, judgeEquivalence, naturalnessOf } = require("./llm");
+const { translate, naturalnessOf } = require("./llm");
+const { judgeRewrite } = require("./judge");
 const { enqueue } = require("./queue");
 const { getPending, setPending, clearPending } = require("./state");
 const { t } = require("./i18n");
@@ -8,7 +9,10 @@ const { t } = require("./i18n");
 // verdict 来自 LLM 输出的裸 JSON.parse,没有 schema 校验:如果 equivalent
 // 被判定模型序列化成字符串 "false" 而不是布尔值 false,JS 里非空字符串是
 // truthy,用 || 直接短路会把 passed 误判成通过。这里严格要求 === true。
+// systemone 判官的 equivalent 已经按 judge.threshold 算好,是唯一依据;
+// 它的 score 只是概率×100 用来展示,不能再拿 judgeThreshold 二次放行。
 function judgePassed(cfg, verdict) {
+  if (verdict.via === "systemone") return verdict.equivalent === true;
   return verdict.equivalent === true || (Number(verdict.score) || 0) >= cfg.judgeThreshold;
 }
 
@@ -115,7 +119,7 @@ function handlePending(cfg, sessionId, text, pending, source) {
   // 英文重写:判断语义是否与原文一致
   let verdict;
   try {
-    verdict = judgeEquivalence(cfg, pending.original, text);
+    verdict = judgeRewrite(cfg, pending.original, text);
   } catch (_) {
     // LLM 挂了不挡路;也不再追加地道度判定 —— 服务刚挂过,再调一次大概率
     // 又要白等一个完整超时,才能放行用户。

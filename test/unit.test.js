@@ -387,3 +387,98 @@ test("eval.runJudge: 用 fake-llm 跑通,FAILWORD 判不一致,其余判一致",
   assert.deepEqual(results.map((r) => [r.id, r.passed]), [["ok", true], ["bad", false]]);
   assert.throws(() => runJudge(cfg, "nope", []), /unknown judge/);
 });
+
+// ---------------------------------------------------------------------------
+// src/judge.js — systemone 判官(用 test/fake-systemone.js 起一个本地桩服务)
+// ---------------------------------------------------------------------------
+
+const { spawn } = require("child_process");
+const judge = require("../src/judge");
+
+// judge 走 spawnSync(curl) 同步阻塞,桩服务必须在独立子进程里,否则同进程的
+// http server 在阻塞期间根本没法响应。
+let fakeServer;
+let fakeBase;
+test.before(async () => {
+  fakeServer = spawn(process.execPath, [path.join(__dirname, "fake-systemone.js")], { stdio: ["ignore", "pipe", "inherit"] });
+  const port = await new Promise((resolve, reject) => {
+    fakeServer.stdout.on("data", (d) => {
+      const m = String(d).match(/READY (\d+)/);
+      if (m) resolve(m[1]);
+    });
+    fakeServer.on("error", reject);
+  });
+  fakeBase = `http://127.0.0.1:${port}`;
+});
+test.after(() => fakeServer && fakeServer.kill());
+
+function systemoneCfg(judgeOverrides) {
+  return {
+    judgeThreshold: 70,
+    llm: { provider: "cli", command: ["node", path.join(__dirname, "fake-llm.js")], timeoutMs: 10000 },
+    judge: { provider: "systemone", baseUrl: fakeBase, model: "laya", apiKey: "local", apiKeyEnv: null,
+      threshold: 0.5, hintFromLLM: true, timeoutMs: 3000, ...judgeOverrides }
+  };
+}
+
+test("judge.systemoneVerdict: 按 wire format 取 noul 概率,score=概率×100,model 取服务端回报的实际模型", () => {
+  const ok = judge.systemoneVerdict(systemoneCfg(), "帮我重构", "refactor this");
+  assert.deepEqual(
+    { via: ok.via, model: ok.model, equivalent: ok.equivalent, score: ok.score, natural: ok.natural },
+    { via: "systemone", model: "laya:multilingual", equivalent: true, score: 93, natural: true }
+  );
+  const bad = judge.systemoneVerdict(systemoneCfg(), "帮我重构并补测试", "FAILWORD refactor");
+  assert.equal(bad.equivalent, false);
+  assert.equal(bad.score, 12);
+  assert.equal(bad.natural, false);
+});
+
+test("judge.judgeRewrite: 判不一致时向 llm 要提示;判一致时不调 llm", () => {
+  const bad = judge.judgeRewrite(systemoneCfg(), "帮我重构并补测试", "FAILWORD refactor");
+  assert.equal(bad.hint, "漏了测试的要求");
+  const noHint = judge.judgeRewrite(systemoneCfg({ hintFromLLM: false }), "帮我重构并补测试", "FAILWORD refactor");
+  assert.equal(noHint.hint, "");
+});
+
+test("judge.judgeRewrite: 服务端报错或超时都回退到 llm 判定", () => {
+  const broken = judge.judgeRewrite(systemoneCfg({ model: "BROKEN" }), "帮我重构", "refactor this");
+  assert.equal(broken.via, "llm-fallback");
+  assert.equal(broken.equivalent, true);
+  const slow = judge.judgeRewrite(systemoneCfg({ model: "SLOW", timeoutMs: 300 }), "帮我重构", "refactor this");
+  assert.equal(slow.via, "llm-fallback");
+});
+
+test("judge.judgeRewrite: provider=llm 时不碰 systemone", () => {
+  const v = judge.judgeRewrite(systemoneCfg({ provider: "llm", baseUrl: "http://127.0.0.1:1" }), "帮我重构", "refactor this");
+  assert.equal(v.via, undefined);
+  assert.equal(v.equivalent, true);
+});
+
+test("gate.judgePassed: systemone 判官只认 equivalent,score 不能按 judgeThreshold 二次放行", () => {
+  const { judgePassed } = require("../src/gate");
+  assert.equal(judgePassed({ judgeThreshold: 70 }, { via: "systemone", equivalent: false, score: 75 }), false);
+  assert.equal(judgePassed({ judgeThreshold: 70 }, { via: "systemone", equivalent: true, score: 55 }), true);
+});
+
+test("judge.extractNoul: 形状不对抛错,不返回 undefined", () => {
+  assert.equal(judge.extractNoul({ answers: { equivalent: { type: "noul", noul: 0.7 } } }, "equivalent"), 0.7);
+  assert.throws(() => judge.extractNoul({ answers: {} }, "equivalent"), /unexpected systemone response/);
+  assert.throws(() => judge.extractNoul({ answers: { equivalent: { noul: "0.7" } } }, "equivalent"), /unexpected/);
+});
+
+test("judge.resolveJudgeKey: apiKeyEnv > apiKey > TYPESAFE_API_KEY", () => {
+  const saved = { A: process.env.EBD_TEST_JUDGE_KEY, T: process.env.TYPESAFE_API_KEY };
+  try {
+    process.env.EBD_TEST_JUDGE_KEY = "from-env";
+    process.env.TYPESAFE_API_KEY = "from-typesafe";
+    assert.equal(judge.resolveJudgeKey({ apiKeyEnv: "EBD_TEST_JUDGE_KEY", apiKey: "plain" }), "from-env");
+    assert.equal(judge.resolveJudgeKey({ apiKeyEnv: null, apiKey: "plain" }), "plain");
+    assert.equal(judge.resolveJudgeKey({ apiKeyEnv: null, apiKey: null }), "from-typesafe");
+    delete process.env.TYPESAFE_API_KEY;
+    assert.equal(judge.resolveJudgeKey({ apiKeyEnv: null, apiKey: null }), null);
+  } finally {
+    for (const [k, v] of [["EBD_TEST_JUDGE_KEY", saved.A], ["TYPESAFE_API_KEY", saved.T]]) {
+      if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    }
+  }
+});
