@@ -1,0 +1,482 @@
+[
+  {
+    "id": "zh-001",
+    "lang": "zh",
+    "original": "帮我把 `utils.js` 里的回调函数改成 async/await 写法。",
+    "rewrite": "Refactor the callback functions in utils.js to use async/await.",
+    "equivalent": true,
+    "note": "Natural, complete rewrite."
+  },
+  {
+    "id": "zh-002",
+    "lang": "zh",
+    "original": "这个接口偶尔返回 500，帮我查一下原因并修复。",
+    "rewrite": "This API sometimes return 500, please find why and fix it.",
+    "equivalent": true,
+    "note": "Grammar errors but both 'find cause' and 'fix' are kept."
+  },
+  {
+    "id": "zh-003",
+    "lang": "zh",
+    "original": "给 `UserService` 写单元测试，覆盖率至少达到 80%。",
+    "rewrite": "Write unit tests for UserService.",
+    "equivalent": false,
+    "note": "Drops the 80% minimum coverage requirement."
+  },
+  {
+    "id": "zh-004",
+    "lang": "zh",
+    "original": "解释一下这段正则表达式是什么意思，不要修改代码。",
+    "rewrite": "Explain what this regex means and fix it if it's wrong.",
+    "equivalent": false,
+    "note": "Original explicitly forbids modifying code; rewrite adds a fix."
+  },
+  {
+    "id": "zh-005",
+    "lang": "zh",
+    "original": "把整个项目里的 `var` 都换成 `let` 或 `const`。",
+    "rewrite": "Replace var with let or const in this file.",
+    "equivalent": false,
+    "note": "Scope narrowed from the whole project to one file."
+  },
+  {
+    "id": "zh-006",
+    "lang": "zh",
+    "original": "帮我写一条 SQL，查询最近 30 天内下过单的用户数量。",
+    "rewrite": "Write a SQL query to count the users who placed an order in the last 30 days.",
+    "equivalent": true,
+    "note": "Complete and accurate."
+  },
+  {
+    "id": "zh-007",
+    "lang": "zh",
+    "original": "把按钮在移动端居中显示，桌面端保持不变。",
+    "rewrite": "Center the button on mobile, keep desktop as is.",
+    "equivalent": true,
+    "note": "Terse but keeps both constraints."
+  },
+  {
+    "id": "zh-008",
+    "lang": "zh",
+    "original": "回滚上一次提交，但保留工作区的改动。",
+    "rewrite": "Revert the last commit but keep the changes in my working directory.",
+    "equivalent": true,
+    "note": "hard: 'revert' is technically a different git command (git revert), but in context it reads as 'undo the last commit, keep changes', matching the original."
+  },
+  {
+    "id": "zh-009",
+    "lang": "zh",
+    "original": "撤销最近两次提交，但不要删除本地修改。",
+    "rewrite": "Undo the last commit but don't delete local changes.",
+    "equivalent": false,
+    "note": "Wrong number: two commits vs one."
+  },
+  {
+    "id": "zh-010",
+    "lang": "zh",
+    "original": "为什么这个 React 组件会重复渲染？",
+    "rewrite": "Fix the unnecessary re-renders in this React component.",
+    "equivalent": false,
+    "note": "Changed intent: original asks for an explanation, rewrite asks for a fix."
+  },
+  {
+    "id": "zh-011",
+    "lang": "zh",
+    "original": "把 Node 版本升级到 20，并更新 CI 配置。",
+    "rewrite": "Upgrade Node to version 20 and update the CI config.",
+    "equivalent": true,
+    "note": "Complete."
+  },
+  {
+    "id": "zh-012",
+    "lang": "zh",
+    "original": "把 Python 从 3.8 升级到 3.11，检查一下有没有不兼容的依赖。",
+    "rewrite": "Upgrade Python from 3.8 to 3.12 and check for incompatible dependencies.",
+    "equivalent": false,
+    "note": "Wrong target version: 3.11 vs 3.12."
+  },
+  {
+    "id": "zh-013",
+    "lang": "zh",
+    "original": "用 Docker 把这个服务部署到测试环境，先别动生产环境。",
+    "rewrite": "Deploy this service to staging with Docker, don't touch production for now.",
+    "equivalent": true,
+    "note": "Paraphrase keeping all constraints."
+  },
+  {
+    "id": "zh-014",
+    "lang": "zh",
+    "original": "帮我优化这个查询，它在大表上很慢。可以加索引，但不要改表结构。",
+    "rewrite": "Optimize this query, it is slow on large tables. You can add indexes or change the table schema if needed.",
+    "equivalent": false,
+    "note": "Flips the prohibition on changing the table schema."
+  },
+  {
+    "id": "zh-015",
+    "lang": "zh",
+    "original": "看看 `src/api/auth.ts` 有没有安全问题。",
+    "rewrite": "Check src/api/auth.ts for any security issues.",
+    "equivalent": true,
+    "note": "Accurate."
+  },
+  {
+    "id": "zh-016",
+    "lang": "zh",
+    "original": "检查一下 `config/prod.yaml` 里的数据库配置是否正确。",
+    "rewrite": "Check if the database config in config/dev.yaml is correct.",
+    "equivalent": false,
+    "note": "Wrong file: prod.yaml vs dev.yaml."
+  },
+  {
+    "id": "zh-017",
+    "lang": "zh",
+    "original": "把这段代码里的魔法数字提取成常量，名字要有意义。",
+    "rewrite": "extract magic number in this code to constant with meaningful name",
+    "equivalent": true,
+    "note": "Non-native grammar and casing, meaning intact."
+  },
+  {
+    "id": "zh-018",
+    "lang": "zh",
+    "original": "给登录页面加上“记住我”功能，默认不勾选。",
+    "rewrite": "Add a 'remember me' checkbox to the login page.",
+    "equivalent": false,
+    "note": "hard: drops the explicit 'unchecked by default' requirement; many implementations would do it anyway, but it is a stated requirement."
+  },
+  {
+    "id": "zh-019",
+    "lang": "zh",
+    "original": "写一个脚本，每天凌晨两点备份数据库，只保留最近七天的备份。",
+    "rewrite": "Write a script that backs up the database every day at 2 AM and only keeps the last 7 days of backups.",
+    "equivalent": true,
+    "note": "Complete."
+  },
+  {
+    "id": "zh-020",
+    "lang": "zh",
+    "original": "写一个 shell 脚本，批量重命名当前目录下的 .jpg 文件。",
+    "rewrite": "Write a shell script to batch rename all .jpg files in this directory and all its subdirectories.",
+    "equivalent": false,
+    "note": "Scope expanded to include subdirectories."
+  },
+  {
+    "id": "zh-021",
+    "lang": "zh",
+    "original": "这个函数太长了，帮我拆分成几个小函数，行为保持不变。",
+    "rewrite": "Split this long function into smaller ones without changing its behavior.",
+    "equivalent": true,
+    "note": "Reordered paraphrase, all requirements kept."
+  },
+  {
+    "id": "zh-022",
+    "lang": "zh",
+    "original": "解释一下这个报错，用中文回答。",
+    "rewrite": "Explain this error.",
+    "equivalent": false,
+    "note": "hard: drops the requested answer language (Chinese), which changes the expected output."
+  },
+  {
+    "id": "zh-023",
+    "lang": "zh",
+    "original": "修复 `test/login.spec.ts` 中失败的测试，不要改业务代码。",
+    "rewrite": "Fix the failing tests in test/login.spec.ts without touching the production code.",
+    "equivalent": true,
+    "note": "'business code' correctly rendered as production code."
+  },
+  {
+    "id": "zh-024",
+    "lang": "zh",
+    "original": "让 CI 跑通，所有失败的测试都要修好，不能直接跳过。",
+    "rewrite": "Make CI pass, skip the failing tests if necessary.",
+    "equivalent": false,
+    "note": "Negation flipped: original forbids skipping tests."
+  },
+  {
+    "id": "zh-025",
+    "lang": "zh",
+    "original": "帮我加个 loading 状态，请求返回之前按钮不能点。",
+    "rewrite": "Add loading state, button disabled until request returns.",
+    "equivalent": true,
+    "note": "Telegraphic but complete."
+  },
+  {
+    "id": "zh-026",
+    "lang": "zh",
+    "original": "把 README 里的安装步骤更新一下，现在要用 pnpm 而不是 npm。",
+    "rewrite": "Update the install steps in the README to use pnpm instead of npm.",
+    "equivalent": true,
+    "note": "Complete."
+  },
+  {
+    "id": "zh-027",
+    "lang": "zh",
+    "original": "把所有的 `console.log` 删掉，但是 `console.error` 要保留。",
+    "rewrite": "Remove all console statements.",
+    "equivalent": false,
+    "note": "Over-generalization: would also remove console.error, which must be kept."
+  },
+  {
+    "id": "zh-028",
+    "lang": "zh",
+    "original": "这个页面在 Safari 上布局错乱，Chrome 上是正常的，帮我看看。",
+    "rewrite": "The layout of this page is broken in Safari but fine in Chrome, can you take a look?",
+    "equivalent": true,
+    "note": "Accurate."
+  },
+  {
+    "id": "zh-029",
+    "lang": "zh",
+    "original": "给这个 API 加上分页，每页默认 20 条，最多 100 条。",
+    "rewrite": "Add pagination to this API: default 20 items per page, max 100.",
+    "equivalent": true,
+    "note": "Terse, all numbers correct."
+  },
+  {
+    "id": "zh-030",
+    "lang": "zh",
+    "original": "给接口加上限流，每个 IP 每分钟最多 60 次请求。",
+    "rewrite": "Add rate limiting to the API, max 60 requests per IP per second.",
+    "equivalent": false,
+    "note": "Wrong unit: per minute vs per second."
+  },
+  {
+    "id": "zh-031",
+    "lang": "zh",
+    "original": "先别写代码，给我讲讲你打算怎么重构这个模块。",
+    "rewrite": "Before writing any code, tell me how you plan to refactor this module.",
+    "equivalent": true,
+    "note": "hard: 'before writing code' could be read as permission to code afterwards, but the original's '先别' (not yet) carries the same implication."
+  },
+  {
+    "id": "zh-032",
+    "lang": "zh",
+    "original": "把这个类改成单例模式。",
+    "rewrite": "Make this class a singleton.",
+    "equivalent": true,
+    "note": "Terse, equivalent."
+  },
+  {
+    "id": "zh-033",
+    "lang": "zh",
+    "original": "帮我把这个 PR 里的提交合并成一个。",
+    "rewrite": "Squash the commits in this PR into one.",
+    "equivalent": true,
+    "note": "Correct technical term for 合并提交."
+  },
+  {
+    "id": "zh-034",
+    "lang": "zh",
+    "original": "把 `feature/login` 分支合并到 `main`，如果有冲突先问我。",
+    "rewrite": "Merge feature/login into main and resolve any conflicts.",
+    "equivalent": false,
+    "note": "Original says ask before handling conflicts; rewrite resolves them autonomously."
+  },
+  {
+    "id": "zh-035",
+    "lang": "zh",
+    "original": "我觉得这里可能有内存泄漏，你帮我确认一下。",
+    "rewrite": "Fix the memory leak here.",
+    "equivalent": false,
+    "note": "Changed intent: confirm a suspected leak vs fix an assumed leak."
+  },
+  {
+    "id": "zh-036",
+    "lang": "zh",
+    "original": "用 TypeScript 重写这个文件，类型尽量严格，不要用 `any`。",
+    "rewrite": "Rewrite this file in TypeScript with strict types, and avoid using any as much as possible.",
+    "equivalent": false,
+    "note": "hard: absolute ban on `any` softened to 'as much as possible'."
+  },
+  {
+    "id": "ja-001",
+    "lang": "ja",
+    "original": "この関数にJSDocコメントを追加してください。",
+    "rewrite": "Please add JSDoc comments to this function.",
+    "equivalent": true,
+    "note": "Direct translation."
+  },
+  {
+    "id": "ja-002",
+    "lang": "ja",
+    "original": "`package.json` の依存関係を最新バージョンに更新して、テストが通るか確認してください。",
+    "rewrite": "Update the dependencies in package.json to the latest versions.",
+    "equivalent": false,
+    "note": "Drops the requirement to verify tests pass."
+  },
+  {
+    "id": "ja-003",
+    "lang": "ja",
+    "original": "このエラーの原因を教えてください。修正はまだしなくていいです。",
+    "rewrite": "Tell me the cause of this error. No need to fix it yet.",
+    "equivalent": true,
+    "note": "Complete."
+  },
+  {
+    "id": "ja-004",
+    "lang": "ja",
+    "original": "ダークモードに対応させたいです。色はCSS変数で管理してください。",
+    "rewrite": "I want support dark mode. Please manage colors by CSS variable.",
+    "equivalent": true,
+    "note": "Non-native grammar, meaning intact."
+  },
+  {
+    "id": "ja-005",
+    "lang": "ja",
+    "original": "ログインに5回続けて失敗したら、アカウントを30分間ロックする処理を追加して。",
+    "rewrite": "Add logic to lock the account for 30 minutes after 3 consecutive failed logins.",
+    "equivalent": false,
+    "note": "Wrong number: 5 attempts vs 3."
+  },
+  {
+    "id": "ja-006",
+    "lang": "ja",
+    "original": "このコードをもっと読みやすくしてもらえますか？パフォーマンスは気にしなくていいです。",
+    "rewrite": "Can you make this code more readable and faster?",
+    "equivalent": false,
+    "note": "Adds a performance requirement the original explicitly waived."
+  },
+  {
+    "id": "ja-007",
+    "lang": "ja",
+    "original": "`main` ブランチに直接プッシュしないで、新しいブランチを作ってPRを出してください。",
+    "rewrite": "Create a new branch and open a PR instead of pushing directly to main.",
+    "equivalent": true,
+    "note": "Reordered but equivalent."
+  },
+  {
+    "id": "ja-008",
+    "lang": "ja",
+    "original": "型エラーを全部直して。ただし `// @ts-ignore` は使わないこと。",
+    "rewrite": "Fix all the type errors without suppressing them.",
+    "equivalent": true,
+    "note": "hard: 'without suppressing' is broader than banning @ts-ignore, but captures the evident intent (real fixes, not suppression)."
+  },
+  {
+    "id": "ko-001",
+    "lang": "ko",
+    "original": "이 컴포넌트를 클래스형에서 함수형으로 바꿔 주세요.",
+    "rewrite": "Convert this component from a class component to a function component.",
+    "equivalent": true,
+    "note": "Accurate."
+  },
+  {
+    "id": "ko-002",
+    "lang": "ko",
+    "original": "로그 레벨을 `debug`에서 `info`로 바꿔 주세요. 운영 환경에만 적용해야 합니다.",
+    "rewrite": "Change the log level from debug to info.",
+    "equivalent": false,
+    "note": "Drops the production-only constraint."
+  },
+  {
+    "id": "ko-003",
+    "lang": "ko",
+    "original": "이 SQL 쿼리가 왜 느린지 설명해 주세요.",
+    "rewrite": "Explain why this SQL query is slow.",
+    "equivalent": true,
+    "note": "Accurate."
+  },
+  {
+    "id": "ko-004",
+    "lang": "ko",
+    "original": "모든 API 응답 헤더에 요청 ID를 추가해 주세요.",
+    "rewrite": "Add a request ID header to the responses of the user API.",
+    "equivalent": false,
+    "note": "Scope narrowed from all APIs to the user API."
+  },
+  {
+    "id": "ko-005",
+    "lang": "ko",
+    "original": "테스트 코드는 건드리지 말고 타입 에러만 고쳐 주세요.",
+    "rewrite": "fix only type errors, dont touch test code",
+    "equivalent": true,
+    "note": "Terse and informal but complete."
+  },
+  {
+    "id": "ko-006",
+    "lang": "ko",
+    "original": "배포하기 전에 마이그레이션 스크립트를 실행해 주세요.",
+    "rewrite": "Run the migration script after deploying.",
+    "equivalent": false,
+    "note": "Order reversed: before vs after deployment."
+  },
+  {
+    "id": "ru-001",
+    "lang": "ru",
+    "original": "Добавь валидацию email в форму регистрации и покажи сообщение об ошибке под полем.",
+    "rewrite": "Add email validation to registration form and show error message under the field.",
+    "equivalent": true,
+    "note": "Missing articles, meaning intact."
+  },
+  {
+    "id": "ru-002",
+    "lang": "ru",
+    "original": "Перепиши этот модуль без использования сторонних библиотек.",
+    "rewrite": "Rewrite this module using fewer third-party libraries.",
+    "equivalent": false,
+    "note": "'Without' third-party libraries weakened to 'fewer'."
+  },
+  {
+    "id": "ru-003",
+    "lang": "ru",
+    "original": "Найди, где в проекте используется устаревший метод `getData`, но пока ничего не меняй.",
+    "rewrite": "Find where the deprecated getData method is used in the project and replace it.",
+    "equivalent": false,
+    "note": "Original says don't change anything yet; rewrite adds replacement."
+  },
+  {
+    "id": "ru-004",
+    "lang": "ru",
+    "original": "Настрой ESLint так, чтобы он запускался перед каждым коммитом.",
+    "rewrite": "Set up a pre-commit hook that runs ESLint.",
+    "equivalent": true,
+    "note": "hard: reframed in different terms (pre-commit hook) but describes the same outcome."
+  },
+  {
+    "id": "ar-001",
+    "lang": "ar",
+    "original": "اشرح لي ماذا يفعل هذا الكود سطرًا بسطر.",
+    "rewrite": "Explain what this code does line by line.",
+    "equivalent": true,
+    "note": "Accurate."
+  },
+  {
+    "id": "ar-002",
+    "lang": "ar",
+    "original": "أضف اختبارات للحالات الحدية في دالة `parseDate`، مثل التاريخ الفارغ والتنسيق غير الصحيح.",
+    "rewrite": "Add edge case tests for parseDate, like empty date and wrong format.",
+    "equivalent": true,
+    "note": "Complete."
+  },
+  {
+    "id": "ar-003",
+    "lang": "ar",
+    "original": "لا تحذف الملفات القديمة، فقط انقلها إلى مجلد `archive`.",
+    "rewrite": "Don't delete the old files, just copy them to the archive folder.",
+    "equivalent": false,
+    "note": "Move vs copy: copying leaves the originals in place."
+  },
+  {
+    "id": "hi-001",
+    "lang": "hi",
+    "original": "इस फ़ंक्शन में null check जोड़ दो ताकि ऐप crash न हो।",
+    "rewrite": "Add a null check in this function so the app doesn't crash.",
+    "equivalent": true,
+    "note": "Accurate."
+  },
+  {
+    "id": "hi-002",
+    "lang": "hi",
+    "original": "डेटाबेस कनेक्शन का timeout 30 सेकंड से बढ़ाकर 60 सेकंड कर दो।",
+    "rewrite": "Increase the database connection timeout from 30 to 90 seconds.",
+    "equivalent": false,
+    "note": "Wrong value: 60 vs 90 seconds."
+  },
+  {
+    "id": "hi-003",
+    "lang": "hi",
+    "original": "पूरे प्रोजेक्ट में `fetch` की जगह `axios` इस्तेमाल करो।",
+    "rewrite": "Use axios in the project.",
+    "equivalent": false,
+    "note": "hard: loses 'replace fetch everywhere'; could be read as merely adding axios somewhere."
+  }
+]
