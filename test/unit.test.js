@@ -347,3 +347,43 @@ test("state.getPending: pending.json 不存在时直接返回 null,不创建锁�
   assert.equal(state.getPending("nobody"), null);
   assert.equal(fs.existsSync(statePath + ".lock"), false);
 });
+
+// ---------------------------------------------------------------------------
+// src/eval.js
+// ---------------------------------------------------------------------------
+
+test("eval.percentile: nearest-rank,空数组返回 null", () => {
+  const { percentile } = require("../src/eval");
+  assert.equal(percentile([], 50), null);
+  assert.equal(percentile([10, 20, 30, 40], 50), 20);
+  assert.equal(percentile([10, 20, 30, 40], 95), 40);
+});
+
+test("eval.summarize: 出错不计入准确率,误放行/误拦截分开统计", () => {
+  const { summarize } = require("../src/eval");
+  const s = summarize([
+    { id: "a", expected: true, passed: true, ms: 5 },
+    { id: "b", expected: false, passed: true, ms: 7 },   // 误放行
+    { id: "c", expected: true, passed: false, ms: 9 },   // 误拦截
+    { id: "d", expected: false, passed: false, ms: 11 },
+    { id: "e", expected: true, passed: null, ms: 100 }   // 判官出错
+  ]);
+  assert.equal(s.total, 5);
+  assert.equal(s.judged, 4);
+  assert.equal(s.errors, 1);
+  assert.equal(s.accuracy, 0.5);
+  assert.deepEqual(s.falsePass, ["b"]);
+  assert.deepEqual(s.falseBlock, ["c"]);
+  assert.equal(s.p50Ms, 9);
+});
+
+test("eval.runJudge: 用 fake-llm 跑通,FAILWORD 判不一致,其余判一致", () => {
+  const { runJudge } = require("../src/eval");
+  const cfg = { judgeThreshold: 70, llm: { provider: "cli", command: ["node", path.join(__dirname, "fake-llm.js")], timeoutMs: 10000 } };
+  const results = runJudge(cfg, "llm", [
+    { id: "ok", original: "帮我重构", rewrite: "refactor this", equivalent: true },
+    { id: "bad", original: "帮我重构", rewrite: "FAILWORD delete it", equivalent: false }
+  ]);
+  assert.deepEqual(results.map((r) => [r.id, r.passed]), [["ok", true], ["bad", false]]);
+  assert.throws(() => runJudge(cfg, "nope", []), /unknown judge/);
+});
